@@ -24,6 +24,7 @@ type MenuList struct {
 	states                  int
 	index                   int
 	shortkeys               map[rune]func()
+	callbacks               map[int]func()
 	drawFn                  func()
 	beforeSelectedFn        func()
 }
@@ -54,6 +55,7 @@ func NewMenuList(label string, index int) *MenuList {
 		backgroundColor:         tcell.ColorDefault,
 		selectedBackgroundColor: tcell.ColorDefault,
 		shortkeys:               make(map[rune]func()),
+		callbacks:               make(map[int]func()),
 		states:                  0,
 	}
 }
@@ -130,6 +132,8 @@ func (m *MenuList) AddItem(label string, shortcut rune, selected func()) *MenuLi
 		l = sb.String()
 	}
 
+	idx := m.list.GetItemCount()
+	m.callbacks[idx] = onselected
 	m.list.AddItem(l, "", 0, func() {
 		if m.states&inFakeSelection == 0 && onselected != nil {
 			onselected()
@@ -184,6 +188,13 @@ func (m *MenuList) InputCapture(event *tcell.EventKey) *tcell.EventKey {
 			m.list.SetSelectedBackgroundColor(m.selectedBackgroundColor)
 		}
 
+		return nil
+	case tcell.KeyEnter:
+		idx := m.list.GetCurrentItem()
+		if val, ok := m.callbacks[idx]; ok {
+			val()
+			return nil
+		}
 		return nil
 	}
 
