@@ -1,7 +1,6 @@
 package bestbar
 
 import (
-	"fmt"
 	"unicode"
 
 	"github.com/gdamore/tcell/v2"
@@ -56,12 +55,11 @@ func (t *Toolbar) Redraw() {
 	}
 }
 
-func (t *Toolbar) AddMenuList(label string) *MenuList {
+func (t *Toolbar) AddMenuList(label string, shortcut rune) *MenuList {
 	activeColor := Styles.MenuBackgroundColorActived
 	inactiveColor := Styles.BackgroundColor
 
-	shortcut := label[0]
-	lf := fmt.Sprintf("[#be0000::b]%c[-:-:-]%s", shortcut, label[1:])
+	lf := formatLabelWithShortcut(label, shortcut)
 	ml := NewMenuList(lf, len(t.lists))
 	ml.SetBackgroundColor(inactiveColor)
 	ml.SetTextColor(Styles.TextColor)

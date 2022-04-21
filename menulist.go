@@ -1,7 +1,6 @@
 package bestbar
 
 import (
-	"strings"
 	"unicode"
 
 	"github.com/gdamore/tcell/v2"
@@ -24,7 +23,7 @@ type MenuList struct {
 	states                  int
 	index                   int
 	shortkeys               map[rune]func()
-	callbacks               map[int]func()
+	items                   map[int]*MenuListItem
 	drawFn                  func()
 	beforeSelectedFn        func()
 }
@@ -55,7 +54,7 @@ func NewMenuList(label string, index int) *MenuList {
 		backgroundColor:         tcell.ColorDefault,
 		selectedBackgroundColor: tcell.ColorDefault,
 		shortkeys:               make(map[rune]func()),
-		callbacks:               make(map[int]func()),
+		items:                   make(map[int]*MenuListItem),
 		states:                  0,
 	}
 }
@@ -100,8 +99,10 @@ func (m *MenuList) Index() int {
 }
 
 func (m *MenuList) AddItem(label string, shortcut rune, selected func()) *MenuList {
-	var l string = label
-	onselected := func() {
+	idx := m.list.GetItemCount()
+
+	mli := NewMenuListItem(label, idx)
+	mli.OnSelected = func() {
 		if m.beforeSelectedFn != nil {
 			m.beforeSelectedFn()
 		}
@@ -113,30 +114,15 @@ func (m *MenuList) AddItem(label string, shortcut rune, selected func()) *MenuLi
 		lowershortcut := unicode.ToLower(shortcut)
 
 		if selected != nil {
-			m.shortkeys[lowershortcut] = onselected
+			m.shortkeys[lowershortcut] = mli.OnSelected
 		}
-
-		// Create label
-		foundshortcut := false
-		var sb strings.Builder
-		for _, c := range label {
-			//"[#be0000::b]%c[-:-:-]%s"
-			if !foundshortcut && c == shortcut {
-				sb.WriteString("[#be0000::b]")
-				sb.WriteRune(c)
-				sb.WriteString("[-:-:-]")
-			} else {
-				sb.WriteRune(c)
-			}
-		}
-		l = sb.String()
 	}
+	formattedLabel := formatLabelWithShortcut(label, shortcut)
 
-	idx := m.list.GetItemCount()
-	m.callbacks[idx] = onselected
-	m.list.AddItem(l, "", 0, func() {
-		if m.states&inFakeSelection == 0 && onselected != nil {
-			onselected()
+	m.items[idx] = mli
+	m.list.AddItem(formattedLabel, "", 0, func() {
+		if m.states&inFakeSelection == 0 && mli.OnSelected != nil {
+			mli.OnSelected()
 		}
 	})
 
@@ -191,8 +177,8 @@ func (m *MenuList) InputCapture(event *tcell.EventKey) *tcell.EventKey {
 		return nil
 	case tcell.KeyEnter:
 		idx := m.list.GetCurrentItem()
-		if val, ok := m.callbacks[idx]; ok {
-			val()
+		if mli, ok := m.items[idx]; ok {
+			mli.OnSelected()
 			return nil
 		}
 		return nil
@@ -253,6 +239,12 @@ func (m *MenuList) Draw(screen tcell.Screen) {
 
 	// The width is the width of the list
 	_, _, listWidth, _ := m.list.GetInnerRect()
+	for _, item := range m.items {
+		w := stringWidth(item.Label())
+		if w > listWidth {
+			listWidth = w
+		}
+	}
 
 	width := listWidth + (boxPadding * 2) + (groupPadding * 2)
 	height := listHeight + (groupPadding * 2)
