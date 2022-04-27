@@ -90,6 +90,11 @@ func (m *MenuList) SetBeforeSelectedFunc(beforeSelectedFn func()) {
 	m.beforeSelectedFn = beforeSelectedFn
 }
 
+func (m *MenuList) SetButtonLabel(label string, shortcut rune) {
+	fmt := formatLabelWithShortcut(label, shortcut)
+	m.Button().SetLabel(fmt)
+}
+
 func (m *MenuList) Button() *tview.Button {
 	return m.btn
 }
@@ -110,6 +115,9 @@ func (m *MenuList) AddItem(label string, shortcut rune, selected func()) *MenuLi
 			selected()
 		}
 	}
+	mli.SetSetTextFunc(func(i int, s string) {
+		m.list.SetItemText(i, s, "")
+	})
 	if shortcut != 0 {
 		lowershortcut := unicode.ToLower(shortcut)
 
@@ -127,6 +135,10 @@ func (m *MenuList) AddItem(label string, shortcut rune, selected func()) *MenuLi
 	})
 
 	return m
+}
+
+func (m *MenuList) GetItem(index int) *MenuListItem {
+	return m.items[index]
 }
 
 func (m *MenuList) HasFocus() bool {
