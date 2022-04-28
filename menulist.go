@@ -10,6 +10,7 @@ import (
 const (
 	initialSelectionMade int = 1 << 0
 	inFakeSelection      int = 1 << 1
+	inDrag               int = 1 << 2
 )
 
 type MenuList struct {
@@ -141,6 +142,14 @@ func (m *MenuList) GetItem(index int) *MenuListItem {
 	return m.items[index]
 }
 
+func (m *MenuList) SetInDrag(dragging bool) {
+	if dragging {
+		m.states |= inDrag
+	} else {
+		m.states = m.states &^ inDrag
+	}
+}
+
 func (m *MenuList) HasFocus() bool {
 	return m.Box.HasFocus() || m.group.HasFocus() || m.list.HasFocus()
 }
@@ -229,6 +238,13 @@ func (m *MenuList) MouseHandler() func(action tview.MouseAction, event *tcell.Ev
 					go m.drawFn()
 				}
 			}
+			break
+		case tview.MouseLeftUp:
+			if m.list.InRect(event.Position()) && m.states&inDrag != 0 {
+				// Click it..
+				return m.list.MouseHandler()(tview.MouseLeftClick, event, setFocus)
+			}
+			break
 		}
 
 		return m.list.MouseHandler()(action, event, setFocus)

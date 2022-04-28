@@ -68,6 +68,7 @@ func (t *Toolbar) AddMenuList(label string, shortcut rune) *MenuList {
 		t.Redraw()
 	})
 	ml.SetBeforeSelectedFunc(func() {
+		ml.SetInDrag(false)
 		t.CloseMenuList()
 	})
 	t.lists = append(t.lists, ml)
@@ -84,6 +85,7 @@ func (t *Toolbar) AddMenuList(label string, shortcut rune) *MenuList {
 				btn.SetBackgroundColorActivated(activeColor)
 				btn.Focus(func(p tview.Primitive) {})
 				t.ml = ml
+				t.ml.SetInDrag(true)
 				go t.Redraw()
 			}
 			break
@@ -93,6 +95,7 @@ func (t *Toolbar) AddMenuList(label string, shortcut rune) *MenuList {
 					btn.SetBackgroundColor(inactiveColor)
 					btn.SetBackgroundColorActivated(inactiveColor)
 					btn.Blur()
+					t.ml.SetInDrag(false)
 					t.ml = nil
 					t.activebtn = nil
 				} else {
@@ -102,11 +105,13 @@ func (t *Toolbar) AddMenuList(label string, shortcut rune) *MenuList {
 						t.activebtn.Blur()
 					}
 					t.ml = ml
+					t.ml.SetInDrag(false)
 					t.activebtn = btn
 				}
 			} else if t.activebtn == btn {
 				btn.SetBackgroundColor(inactiveColor)
 				btn.Blur()
+				t.ml.SetInDrag(false)
 				t.ml = nil
 				t.activebtn = nil
 			}
@@ -117,8 +122,10 @@ func (t *Toolbar) AddMenuList(label string, shortcut rune) *MenuList {
 				if event.Buttons()&tcell.Button1 == 1 {
 					if btn.InRect(event.Position()) {
 						t.ml = ml
+						t.ml.SetInDrag(true)
 					} else {
 						btn.Blur()
+						t.ml.SetInDrag(false)
 						t.ml = nil
 						go t.Redraw()
 					}
@@ -127,6 +134,7 @@ func (t *Toolbar) AddMenuList(label string, shortcut rune) *MenuList {
 				if btn.InRect(event.Position()) {
 					btn.Focus(func(p tview.Primitive) {})
 					t.ml = ml
+					t.ml.SetInDrag(true)
 					go t.Redraw()
 				}
 			}
